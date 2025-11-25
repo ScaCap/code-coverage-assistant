@@ -25,7 +25,7 @@ jobs:
                   path: "**/node_modules"
                   key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
             - name: Install packages
-              run: yarn
+              run: yarn --frozen-lockfile
             - name: ESLint
               run: yarn eslint
 
@@ -74,7 +74,7 @@ jobs:
                   path: "**/node_modules"
                   key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
             - name: Install packages
-              run: yarn
+              run: yarn --frozen-lockfile
             - name: Build
               run: yarn build
             - name: Ensure that the committed dist matches the build
