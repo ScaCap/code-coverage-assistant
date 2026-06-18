@@ -15,23 +15,27 @@
 const appendHiddenHeaderToComment = (body, hiddenHeader) => hiddenHeader + body;
 
 const listComments = async ({ client, context, prNumber, hiddenHeader }) => {
-    const { data: existingComments } = await client.issues.listComments({
-        ...context.repo,
-        issue_number: prNumber,
-    });
+    const { data: existingComments } =
+        (await client.issues?.listComments({
+            ...context.repo,
+            issue_number: prNumber,
+        })) || {};
 
-    return existingComments.filter(({ body }) => body.startsWith(hiddenHeader));
+    return (
+        existingComments?.filter(({ body }) => body.startsWith(hiddenHeader)) ??
+        []
+    );
 };
 
 const insertComment = ({ client, context, prNumber, body }, hiddenHeader) =>
-    client.issues.createComment({
+    client.issues?.createComment({
         ...context.repo,
         issue_number: prNumber,
         body: appendHiddenHeaderToComment(body, hiddenHeader),
     });
 
 const updateComment = ({ client, context, body, commentId }, hiddenHeader) =>
-    client.issues.updateComment({
+    client.issues?.updateComment({
         ...context.repo,
         comment_id: commentId,
         body: appendHiddenHeaderToComment(body, hiddenHeader),
@@ -40,7 +44,7 @@ const updateComment = ({ client, context, body, commentId }, hiddenHeader) =>
 const deleteComments = ({ client, context, comments }) =>
     Promise.all(
         comments.map(({ id }) =>
-            client.issues.deleteComment({
+            client.issues?.deleteComment({
                 ...context.repo,
                 comment_id: id,
             }),
@@ -54,37 +58,41 @@ export const upsertComment = async ({
     body,
     hiddenHeader,
 }) => {
-    const existingComments = await listComments({
-        client,
-        context,
-        prNumber,
-        hiddenHeader,
-    });
-    const last = existingComments.pop();
+    if (client.issues) {
+        const existingComments = await listComments({
+            client,
+            context,
+            prNumber,
+            hiddenHeader,
+        });
+        const last = existingComments.pop();
 
-    await deleteComments({
-        client,
-        context,
-        comments: existingComments,
-    });
+        await deleteComments({
+            client,
+            context,
+            comments: existingComments,
+        });
 
-    return last
-        ? updateComment(
-              {
-                  client,
-                  context,
-                  body,
-                  commentId: last.id,
-              },
-              hiddenHeader,
-          )
-        : insertComment(
-              {
-                  client,
-                  context,
-                  prNumber,
-                  body,
-              },
-              hiddenHeader,
-          );
+        return last
+            ? updateComment(
+                  {
+                      client,
+                      context,
+                      body,
+                      commentId: last.id,
+                  },
+                  hiddenHeader,
+              )
+            : insertComment(
+                  {
+                      client,
+                      context,
+                      prNumber,
+                      body,
+                  },
+                  hiddenHeader,
+              );
+    }
+
+    return "";
 };
